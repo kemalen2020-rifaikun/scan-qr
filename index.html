@@ -50,8 +50,8 @@
         .scan-corner.br { bottom: 14px; right: 14px; border-bottom-width: 3.5px; border-right-width: 3.5px; border-bottom-right-radius: 10px; }
 
         @keyframes scanLaser {
-            0%, 100% { transform: translateY(16px); opacity: 0.45; }
-            50% { transform: translateY(188px); opacity: 1; }
+            0%, 100% { transform: translateY(18px); opacity: 0.45; }
+            50% { transform: translateY(242px); opacity: 1; }
         }
         .scan-laser {
             position: absolute;
@@ -64,7 +64,13 @@
             pointer-events: none;
             z-index: 15;
         }
+        #qr-reader {
+            width: 100% !important;
+            height: 100% !important;
+        }
         #qr-reader video {
+            width: 100% !important;
+            height: 100% !important;
             object-fit: cover !important;
             border-radius: 1rem !important;
         }
@@ -486,25 +492,24 @@
                         <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-2xs space-y-4">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <h2 class="text-base font-bold text-slate-900">Scan Barcode / QR Siswa</h2>
-                                    <p class="text-xs text-slate-500">Gunakan kamera HP Android/iOS atau input ID</p>
+                                    <h2 class="text-base font-bold text-slate-900">Pindai QR Code Siswa</h2>
+                                    <p class="text-xs text-slate-500">Arahkan kotak QR Code kartu ke bingkai persegi</p>
                                 </div>
                                 <span id="camera-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">
                                     Kamera Off
                                 </span>
                             </div>
 
-                            <!-- Viewfinder Kamera -->
-                            <div class="relative w-full h-60 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
+                            <!-- Viewfinder Kamera Persegi (1:1) Khusus QR Code -->
+                            <div class="relative w-full max-w-[270px] aspect-square mx-auto rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-800 shadow-inner flex items-center justify-center">
                                 <div id="qr-reader" class="w-full h-full"></div>
                                 <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center pointer-events-none">
                                     <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-400 flex items-center justify-center mb-2">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                                         </svg>
                                     </div>
-                                    <p class="text-xs font-bold text-white">Siap Memindai Kartu Siswa</p>
+                                    <p class="text-xs font-bold text-white">Bingkai Pindai QR Persegi</p>
                                     <p class="text-[11px] text-slate-400 mt-0.5">Tekan tombol di bawah untuk mengaktifkan kamera HP</p>
                                 </div>
                                 <div class="scan-corner tl"></div>
@@ -1379,11 +1384,23 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
 
             try {
                 if (!qrScannerInstance) {
-                    qrScannerInstance = new Html5Qrcode("qr-reader");
+                    // Batasi format pemindaian khusus QR_CODE (persegi) agar deteksi lebih cepat dan akurat
+                    const formats = typeof Html5QrcodeSupportedFormats !== "undefined"
+                        ? [Html5QrcodeSupportedFormats.QR_CODE]
+                        : undefined;
+                    qrScannerInstance = new Html5Qrcode("qr-reader", formats ? { formatsToSupport: formats, verbose: false } : false);
                 }
                 await qrScannerInstance.start(
                     { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 200, height: 200 } },
+                    {
+                        fps: 12,
+                        aspectRatio: 1.0,
+                        qrbox: (viewfinderWidth, viewfinderHeight) => {
+                            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                            const size = Math.max(150, Math.floor(minEdge * 0.78));
+                            return { width: size, height: size };
+                        }
+                    },
                     (decodedText) => {
                         const code = String(decodedText || "").trim().toUpperCase();
                         const now = Date.now();
