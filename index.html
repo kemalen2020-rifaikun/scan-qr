@@ -468,9 +468,37 @@
                                 <option value="ALL">Semua Kelas</option>
                                 <option value="7A">Kelas 7A</option>
                                 <option value="7B">Kelas 7B</option>
+                                <option value="7C">Kelas 7C</option>
+                                <option value="7D">Kelas 7D</option>
+                                <option value="7E">Kelas 7E</option>
+                                <option value="7F">Kelas 7F</option>
+                                <option value="7G">Kelas 7G</option>
+                                <option value="7H">Kelas 7H</option>
+                                <option value="7I">Kelas 7I</option>
+                                <option value="7J">Kelas 7J</option>
+                                <option value="7K">Kelas 7K</option>
                                 <option value="8A">Kelas 8A</option>
                                 <option value="8B">Kelas 8B</option>
+                                <option value="8C">Kelas 8C</option>
+                                <option value="8D">Kelas 8D</option>
+                                <option value="8E">Kelas 8E</option>
+                                <option value="8F">Kelas 8F</option>
+                                <option value="8G">Kelas 8G</option>
+                                <option value="8H">Kelas 8H</option>
+                                <option value="8I">Kelas 8I</option>
+                                <option value="8J">Kelas 8J</option>
+                                <option value="8K">Kelas 8K</option>
                                 <option value="9A">Kelas 9A</option>
+                                <option value="9B">Kelas 9B</option>
+                                <option value="9C">Kelas 9C</option>
+                                <option value="9D">Kelas 9D</option>
+                                <option value="9E">Kelas 9E</option>
+                                <option value="9F">Kelas 9F</option>
+                                <option value="9G">Kelas 9G</option>
+                                <option value="9H">Kelas 9H</option>
+                                <option value="9I">Kelas 9I</option>
+                                <option value="9J">Kelas 9J</option>
+                                <option value="9K">Kelas 9K</option>
                             </select>
                         </div>
                         <div>
@@ -1470,6 +1498,21 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
 
             const now = new Date();
             const todayIso = getTodayIsoDate();
+
+            // Cegah scan / pencatatan ganda di hari yang sama
+            const alreadyRecordedToday = attendanceRecords.find(r =>
+                r.isoDate === todayIso && r.qrId.toUpperCase() === student.qrId.toUpperCase()
+            );
+
+            if (alreadyRecordedToday) {
+                showScanFeedback(
+                    "duplicate",
+                    `Sudah Absen Hari Ini • ${student.name}`,
+                    `Kartu ${student.qrId} sudah tercatat "${alreadyRecordedToday.status}" pada pukul ${alreadyRecordedToday.time} dan tidak dapat dipindai ulang hari ini.`
+                );
+                return;
+            }
+
             const meeting = document.getElementById("session-meeting").value;
             const topic = document.getElementById("session-topic").value.trim() || "Matematika";
             const timeStr = now.toLocaleTimeString("id-ID", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -1515,13 +1558,28 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
 
         function showScanFeedback(type, title, desc) {
             const card = document.getElementById("scan-feedback-card");
-            card.className = type === "success"
-                ? "rounded-2xl border border-emerald-300 bg-emerald-50/70 p-4 sm:p-5 shadow-2xs animate-enter"
-                : "rounded-2xl border border-rose-300 bg-rose-50/70 p-4 sm:p-5 shadow-2xs animate-enter";
+            if (type === "success") {
+                card.className = "rounded-2xl border border-emerald-300 bg-emerald-50/70 p-4 sm:p-5 shadow-2xs animate-enter";
+            } else if (type === "duplicate") {
+                card.className = "rounded-2xl border border-amber-300 bg-amber-50/80 p-4 sm:p-5 shadow-2xs animate-enter";
+            } else {
+                card.className = "rounded-2xl border border-rose-300 bg-rose-50/70 p-4 sm:p-5 shadow-2xs animate-enter";
+            }
+
+            const titleColor = type === "success"
+                ? "text-emerald-900"
+                : type === "duplicate"
+                    ? "text-amber-900"
+                    : "text-rose-900";
+            const descColor = type === "success"
+                ? "text-emerald-700"
+                : type === "duplicate"
+                    ? "text-amber-800"
+                    : "text-rose-700";
 
             card.innerHTML = `
-                <p class="text-xs sm:text-sm font-extrabold ${type === "success" ? "text-emerald-900" : "text-rose-900"}">${escapeHtml(title)}</p>
-                <p class="text-xs ${type === "success" ? "text-emerald-700" : "text-rose-700"} mt-0.5">${escapeHtml(desc)}</p>
+                <p class="text-xs sm:text-sm font-extrabold ${titleColor}">${escapeHtml(title)}</p>
+                <p class="text-xs ${descColor} mt-0.5">${escapeHtml(desc)}</p>
             `;
         }
 
