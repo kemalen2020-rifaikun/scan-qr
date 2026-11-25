@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="id" class="">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Absensi QR Matematika — Dashboard & Generator Kartu</title>
+
+    <!-- Font Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        pearl: '#F4F7FB',
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Library Pemindai QR Kamera & Generator QR Code -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Sudut bidik viewfinder kamera QR */
+        .scan-corner {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-color: #38bdf8;
+            pointer-events: none;
+            z-index: 15;
+        }
+        .scan-corner.top-left {
+            top: 14px;
+            left: 14px;
+            border-top-width: 3.5px;
+            border-left-width: 3.5px;
+            border-top-left-radius: 10px;
+        }
+        .scan-corner.top-right {
+            top: 14px;
+            right: 14px;
+            border-top-width: 3.5px;
+            border-right-width: 3.5px;
+            border-top-right-radius: 10px;
+        }
+        .scan-corner.bottom-left {
+            bottom: 14px;
+            left: 14px;
+            border-bottom-width: 3.5px;
+            border-left-width: 3.5px;
+            border-bottom-left-radius: 10px;
+        }
+        .scan-corner.bottom-right {
+            bottom: 14px;
+            right: 14px;
+            border-bottom-width: 3.5px;
+            border-right-width: 3.5px;
+            border-bottom-right-radius: 10px;
+        }
+
+        @keyframes scanLine {
+            0%, 100% { transform: translateY(16px); opacity: 0.45; }
+            50% { transform: translateY(188px); opacity: 1; }
+        }
+        .scan-laser {
+            position: absolute;
+            left: 20px;
+            right: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #0ea5e9, #38bdf8, #0ea5e9, transparent);
+            box-shadow: 0 0 12px rgba(14, 165, 233, 0.85);
+            animation: scanLine 2.4s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: translateY(6px) scale(0.985); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-pop-in {
+            animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        #qr-reader video {
+            object-fit: cover !important;
+            border-radius: 1rem !important;
+        }
+
+        /* Mode cetak khusus koleksi kartu absensi */
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #printable-cards-section, #printable-cards-section * {
+                visibility: visible !important;
+            }
+            #printable-cards-section {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-[#F4F7FB] dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200 antialiased">
+
+    <div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5">
+
+        <!-- ===================================================================== -->
+        <!-- 1. HEADER DASHBOARD                                                   -->
+        <!-- ===================================================================== -->
+        <header class="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+                <!-- Judul & Identitas Kelas -->
+                <div class="space-y-2">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-sm shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h4v4H4V7zm0 6h4v4H4v-4zm6-6h4v4h-4V7zm7 0h3v4h-3V7zm-7 6h4v4h-4v-4zm7 3h3v4h-3v-4zm-7 4h4v-1h-4v1z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                                Absensi QR Matematika
+                            </h1>
+                            <div class="flex flex-wrap items-center gap-2 mt-1">
+                                <span id="active-class-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/70">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                                    Kelas 8A • Semester 1
+                                </span>
+                                <span id="sheet-status-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
+                                    Mode Lokal / Siap Hubung Sheet
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pilihan Pertemuan Ke- (1-16) & Topik BAB Matematika -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                        <div>
+                            <label for="meeting-select" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                                Pertemuan Ke- (1–16)
+                            </label>
+                            <select id="meeting-select" onchange="updateSessionMeta()"
+                                class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </select>
+                        </div>
+                        <div>
+                            <label for="topic-select" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                                Topik / BAB Matematika
+                            </label>
+                            <select id="topic-select" onchange="updateSessionMeta()"
+                                class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                <option value="Persamaan Linear Satu Variabel">Persamaan Linear Satu Variabel</option>
+                                <option value="Sistem Persamaan Linear Dua Variabel">Sistem Persamaan Linear Dua Variabel</option>
+                                <option value="Relasi dan Fungsi">Relasi dan Fungsi</option>
+                                <option value="Teorema Pythagoras">Teorema Pythagoras</option>
+                                <option value="Bangun Ruang Sisi Datar">Bangun Ruang Sisi Datar</option>
+                                <option value="Statistika dan Peluang">Statistika dan Peluang</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigasi Mode, Jam Real-Time, Pengaturan Sheet & Tema -->
+                <div class="flex flex-wrap sm:flex-nowrap lg:flex-col items-stretch sm:items-center lg:items-end justify-between gap-2.5">
+                    <!-- Jam Real-Time (HH:mm:ss) -->
+                    <div class="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-[#E2E8F0] dark:border-slate-700 text-left sm:text-right">
+                        <div id="live-date" class="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            Rabu, 25 November 2026
+                        </div>
+                        <div id="live-clock" class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                            00:00:00
+                        </div>
+                    </div>
+
+                    <!-- Tombol Aksi Header -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Switch Halaman: Scanner vs Admin Kartu -->
+                        <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 border border-[#E2E8F0] dark:border-slate-700">
+                            <button type="button" id="nav-scanner-btn" onclick="switchPage('scanner')"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white shadow-xs transition cursor-pointer">
+                                Scanner QR
+                            </button>
+                            <button type="button" id="nav-admin-btn" onclick="switchPage('admin')"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+                                Admin Kartu QR
+                            </button>
+                        </div>
+
+                        <!-- Tombol Konfigurasi Google Spreadsheet -->
+                        <button type="button" onclick="openWebhookModal()"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                            title="Pengaturan URL Google Apps Script">
+                            <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>Sheet</span>
+                        </button>
+
+                        <!-- Tombol Ganti Tema Terang / Gelap -->
+                        <button type="button" id="theme-toggle-btn" onclick="toggleDarkMode()"
+                            class="p-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                            aria-label="Ganti Tema Terang atau Gelap" title="Ganti Tema Terang / Gelap">
+                            <svg id="icon-sun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <svg id="icon-moon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ===================================================================== -->
+        <!-- HALAMAN 1: DASHBOARD SCANNER QR ABSENSI                               -->
+        <!-- ===================================================================== -->
+        <main id="scanner-view" class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+            <!-- KOLOM KIRI (5/12 di desktop): KONTROL SESI, SCANNER QR & SIMULASI -->
+            <section class="lg:col-span-5 space-y-5">
+
+                <!-- Kartu Scanner QR -->
+                <div class="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900 dark:text-white">Pemindai Kode QR</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Arahkan kartu QR siswa ke area kamera</p>
+                        </div>
+                        <span id="camera-status-pill" class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            Kamera Mati
+                        </span>
+                    </div>
+
+                    <!-- Viewfinder Kamera dengan Sudut Bidik -->
+                    <div class="relative w-full h-60 sm:h-64 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
+                        <div id="qr-reader" class="w-full h-full"></div>
+
+                        <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center pointer-events-none">
+                            <div class="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-400/30 text-sky-400 flex items-center justify-center mb-2.5">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <p class="text-xs sm:text-sm font-semibold text-slate-200">Kamera Belum Aktif</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5 max-w-xs">
+                                Tekan <strong>Nyalakan Kamera</strong> atau gunakan <strong>Simulasi Scan QR</strong> di bawah.
+                            </p>
+                        </div>
+
+                        <div class="scan-corner top-left"></div>
+                        <div class="scan-corner top-right"></div>
+                        <div class="scan-corner bottom-left"></div>
+                        <div class="scan-corner bottom-right"></div>
+                        <div id="scan-laser-line" class="scan-laser hidden"></div>
+                    </div>
+
+                    <!-- Tombol Nyalakan / Matikan Kamera (Mudah Dijangkau Satu Tangan di HP) -->
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <button type="button" id="start-camera-btn" onclick="startCamera()"
+                            class="w-full py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.99] text-white text-xs sm:text-sm font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <span>Nyalakan Kamera</span>
+                        </button>
+                        <button type="button" id="stop-camera-btn" onclick="stopCamera()" disabled
+                            class="w-full py-3 px-4 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 disabled:cursor-not-allowed cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                            </svg>
+                            <span>Matikan Kamera</span>
+                        </button>
+                    </div>
+
+                    <!-- Panel Simulasi Scan QR Siswa -->
+                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Simulasi Scan QR Siswa</span>
+                            <span class="text-[11px] text-slate-400">Uji coba tanpa kamera</span>
+                        </div>
+
+                        <!-- Pilih Siswa Dummy Cepat -->
+                        <div class="flex gap-2">
+                            <select id="dummy-student-select"
+                                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </select>
+                            <button type="button" onclick="simulateSelectedStudentScan()"
+                                class="px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shrink-0 shadow-xs transition cursor-pointer">
+                                Scan Siswa
+                            </button>
+                        </div>
+
+                        <!-- Input ID QR Manual (misal MAT-001 atau INVALID-99) -->
+                        <form onsubmit="handleManualQrSubmit(event)" class="flex gap-2">
+                            <input type="text" id="manual-qr-input" placeholder="Input ID QR (misal: MAT-001)"
+                                class="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm font-mono font-semibold uppercase text-slate-800 dark:text-slate-100 placeholder:normal-case placeholder:font-sans focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <button type="submit"
+                                class="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-sky-600 hover:bg-slate-800 dark:hover:bg-sky-500 text-white text-xs font-bold shrink-0 transition cursor-pointer">
+                                Proses ID
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KOLOM KANAN (7/12 di desktop): UMPAN BALIK, STATISTIK & LOG ABSENSI -->
+            <section class="lg:col-span-7 space-y-5">
+
+                <!-- Banner Umpan Balik Instan Hasil Scan Terakhir -->
+                <div id="feedback-banner" class="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs transition-all">
+                    <div id="feedback-content" class="flex items-center gap-3.5 text-slate-500 dark:text-slate-400">
+                        <div class="w-11 h-11 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-800 dark:text-slate-100">Menunggu Pemindaian QR Siswa</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Hasil scan terakhir (Nama, NIS, Kelas, Pertemuan, Waktu, dan Status) akan tampil di sini secara instan.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kartu Statistik Ringkas (4 Metrik Utama) -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Siswa Kelas</p>
+                        <p id="stat-total-students" class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums mt-1">0</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Terdaftar aktif</p>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Hadir Hari Ini</p>
+                        <p id="stat-present-count" class="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums mt-1">0</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Tercatat hadir</p>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Belum Absen</p>
+                        <p id="stat-absent-count" class="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums mt-1">0</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Menunggu scan</p>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400">Persentase Hadir</p>
+                        <p id="stat-percentage" class="text-2xl sm:text-3xl font-extrabold text-sky-600 dark:text-sky-400 tabular-nums mt-1">0%</p>
+                        <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-2">
+                            <div id="stat-percentage-bar" class="h-full bg-sky-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabel / Daftar Riwayat Absensi Terbaru -->
+                <div class="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900 dark:text-white">Riwayat Absensi Terbaru</h2>
+                            <p id="log-session-caption" class="text-xs text-slate-500 dark:text-slate-400">
+                                Pertemuan 1 • Persamaan Linear Satu Variabel
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Filter Cepat -->
+                            <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 border border-[#E2E8F0] dark:border-slate-700 text-xs">
+                                <button type="button" data-filter="ALL" onclick="setLogFilter('ALL')"
+                                    class="filter-btn px-2.5 py-1 rounded-lg font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs transition cursor-pointer">
+                                    Semua
+                                </button>
+                                <button type="button" data-filter="HADIR" onclick="setLogFilter('HADIR')"
+                                    class="filter-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+                                    Hadir
+                                </button>
+                                <button type="button" data-filter="BERMASALAH" onclick="setLogFilter('BERMASALAH')"
+                                    class="filter-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+                                    Bermasalah
+                                </button>
+                            </div>
+
+                            <!-- Tombol Export CSV -->
+                            <button type="button" onclick="exportAttendanceCsv()"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                <span>Export CSV</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Daftar Responsif (Tabel di Desktop/Tablet, Kartu Ringkas di HP) -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                    <th class="py-2.5 pr-3">Waktu</th>
+                                    <th class="py-2.5 px-3">Siswa & NIS</th>
+                                    <th class="py-2.5 px-3 hidden sm:table-cell">ID QR</th>
+                                    <th class="py-2.5 pl-3 text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-log-body" class="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs sm:text-sm">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- ===================================================================== -->
+        <!-- HALAMAN 2: ADMIN DESIGNER & DATABASE KARTU QR SISWA                  -->
+        <!-- ===================================================================== -->
+        <section id="admin-view" class="hidden space-y-6">
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+                <!-- Form Pembuatan Kartu Siswa Baru -->
+                <div class="lg:col-span-6 bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Desainer Kartu Absensi QR Siswa</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Buat kartu QR baru dan simpan langsung ke database lokal serta Google Spreadsheet.
+                        </p>
+                    </div>
+
+                    <form id="create-card-form" onsubmit="handleCreateStudentCard(event)" class="space-y-3.5 text-xs sm:text-sm">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="admin-qr-id" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                    Kode ID QR *
+                                </label>
+                                <div class="flex gap-1.5">
+                                    <input type="text" id="admin-qr-id" required oninput="updateCardDesignerPreview()" placeholder="MAT-013"
+                                        class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono font-bold uppercase text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                    <button type="button" onclick="generateNextQrCode()"
+                                        class="px-2.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 shrink-0 transition cursor-pointer"
+                                        title="Buat Kode QR Otomatis">
+                                        Auto
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="admin-nis" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                    NIS Siswa *
+                                </label>
+                                <input type="text" id="admin-nis" required oninput="updateCardDesignerPreview()" placeholder="2408013"
+                                    class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="admin-name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                Nama Lengkap Siswa *
+                            </label>
+                            <input type="text" id="admin-name" required oninput="updateCardDesignerPreview()" placeholder="Contoh: Raka Pratama"
+                                class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="admin-class" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                    Kelas
+                                </label>
+                                <input type="text" id="admin-class" value="8A" oninput="updateCardDesignerPreview()"
+                                    class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </div>
+
+                            <div>
+                                <label for="admin-school" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                    Nama Sekolah
+                                </label>
+                                <input type="text" id="admin-school" value="SMP NEGERI 1 NUSANTARA" oninput="updateCardDesignerPreview()"
+                                    class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </div>
+                        </div>
+
+                        <!-- Pilihan Tema Kartu -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                Tema Desain Kartu
+                            </label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button type="button" data-theme="sky" onclick="selectCardTheme('sky')"
+                                    class="card-theme-btn py-2 px-3 rounded-xl border-2 border-sky-600 bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-200 text-xs font-bold transition cursor-pointer">
+                                    Sky Math
+                                </button>
+                                <button type="button" data-theme="emerald" onclick="selectCardTheme('emerald')"
+                                    class="card-theme-btn py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
+                                    Emerald
+                                </button>
+                                <button type="button" data-theme="indigo" onclick="selectCardTheme('indigo')"
+                                    class="card-theme-btn py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
+                                    Royal Navy
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="admin-form-feedback" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+
+                        <button type="submit"
+                            class="w-full py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-sm font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            </svg>
+                            <span>Simpan Kartu & Kirim ke Spreadsheet</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Live Preview Kartu Pelajar QR -->
+                <div class="lg:col-span-6 bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Pratinjau Kartu Siswa</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Tampilan kartu QR siap cetak</p>
+                        </div>
+                        <button type="button" onclick="downloadPreviewQrPng()"
+                            class="px-3 py-1.5 rounded-xl border border-[#E2E8F0] dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition cursor-pointer">
+                            Unduh QR PNG
+                        </button>
+                    </div>
+
+                    <div class="flex justify-center py-2">
+                        <div id="live-student-card" class="w-full max-w-sm rounded-2xl overflow-hidden border border-slate-200 shadow-md bg-white text-slate-900">
+                            <div id="preview-card-header" class="bg-gradient-to-r from-sky-600 to-blue-600 px-4 py-3 text-white flex items-center justify-between">
+                                <div>
+                                    <p id="preview-school" class="text-[10px] font-bold uppercase tracking-wider opacity-90">SMP NEGERI 1 NUSANTARA</p>
+                                    <p class="text-xs font-extrabold">Kartu Absensi Matematika</p>
+                                </div>
+                                <span id="preview-class" class="px-2.5 py-0.5 rounded-full bg-white/20 text-xs font-extrabold">8A</span>
+                            </div>
+
+                            <div class="p-4 flex items-center gap-4">
+                                <div id="preview-qr-box" class="w-24 h-24 p-1.5 rounded-xl border border-slate-200 bg-white flex items-center justify-center shrink-0"></div>
+                                <div class="min-w-0 flex-1 space-y-1">
+                                    <p id="preview-name" class="text-sm font-extrabold text-slate-900 truncate">Nama Siswa</p>
+                                    <p id="preview-nis" class="text-xs text-slate-500 tabular-nums">NIS: 2408013</p>
+                                    <span id="preview-qrid" class="inline-block px-2.5 py-0.5 rounded-lg bg-slate-100 text-xs font-mono font-bold text-slate-800">
+                                        MAT-013
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Kartu QR Siswa Terdaftar (Edit, Hapus & Cetak Massal) -->
+            <div id="printable-cards-section" class="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                            Database Kartu QR Siswa Terdaftar (<span id="admin-total-cards" class="tabular-nums">0</span>)
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Kelola data kartu siswa, edit identitas/tema, hapus kartu, atau cetak semua kartu.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 print:hidden">
+                        <button type="button" onclick="syncStudentsFromSheet()"
+                            class="px-3.5 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition cursor-pointer">
+                            Sinkron dari Sheet
+                        </button>
+                        <button type="button" onclick="window.print()"
+                            class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                            Cetak Semua Kartu
+                        </button>
+                    </div>
+                </div>
+
+                <div id="printable-cards-area" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL PENGATURAN URL WEB APP GOOGLE APPS SCRIPT                      -->
+    <!-- ===================================================================== -->
+    <div id="webhook-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl border border-[#E2E8F0] dark:border-slate-800 shadow-xl overflow-hidden animate-pop-in">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Hubungkan Google Spreadsheet</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Masukkan URL Web App Google Apps Script berakhiran <code class="font-mono">/exec</code></p>
+                </div>
+                <button type="button" onclick="closeWebhookModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-3">
+                <label for="webhook-url-input" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    URL Web App Google Apps Script
+                </label>
+                <input type="url" id="webhook-url-input" placeholder="https://script.google.com/macros/s/.../exec"
+                    class="w-full px-3 py-2.5 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <p id="webhook-validation-msg" class="hidden text-xs font-semibold text-rose-600 dark:text-rose-400"></p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Pastikan Anda menggunakan link <strong>script.google.com/macros/s/.../exec</strong> dari menu <em>Deploy &gt; New deployment &gt; Web app</em>, bukan link tampilan <em>docs.google.com/spreadsheets/...</em>.
+                </p>
+            </div>
+
+            <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+                <button type="button" onclick="closeWebhookModal()"
+                    class="px-4 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+                    Batal
+                </button>
+                <button type="button" onclick="saveWebhookConfig()"
+                    class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                    Simpan Konfigurasi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL EDIT DATA & DESAIN KARTU QR SISWA TERDAFTAR                     -->
+    <!-- ===================================================================== -->
+    <div id="edit-card-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl border border-[#E2E8F0] dark:border-slate-800 shadow-xl overflow-hidden animate-pop-in">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Edit Kartu QR Siswa</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Perbarui identitas, kode QR, atau tema kartu siswa</p>
+                </div>
+                <button type="button" onclick="closeEditCardModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <form id="edit-card-form" onsubmit="saveEditedStudentCard(event)" class="p-5 space-y-3.5 text-xs sm:text-sm">
+                <input type="hidden" id="edit-original-qrid">
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="edit-qr-id" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Kode ID QR *</label>
+                        <input type="text" id="edit-qr-id" required
+                            class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold uppercase focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <div>
+                        <label for="edit-nis" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">NIS *</label>
+                        <input type="text" id="edit-nis" required
+                            class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="edit-name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap Siswa *</label>
+                    <input type="text" id="edit-name" required
+                        class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="edit-class" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Kelas</label>
+                        <input type="text" id="edit-class" required
+                            class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <div>
+                        <label for="edit-theme" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Tema Kartu</label>
+                        <select id="edit-theme"
+                            class="w-full px-3 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <option value="sky">Sky Math (Biru)</option>
+                            <option value="emerald">Emerald (Hijau)</option>
+                            <option value="indigo">Royal Navy (Indigo)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="edit-card-error" class="hidden p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold"></div>
+
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeEditCardModal()"
+                        class="px-4 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL KONFIRMASI HAPUS KARTU QR SISWA                                  -->
+    <!-- ===================================================================== -->
+    <div id="delete-card-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl border border-[#E2E8F0] dark:border-slate-800 shadow-xl overflow-hidden animate-pop-in p-5 space-y-4">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Hapus Kartu Siswa?</h3>
+                    <p id="delete-card-desc" class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Kartu siswa akan dihapus dari daftar aktif dan disinkronkan ke Spreadsheet.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-1">
+                <button type="button" onclick="closeDeleteCardModal()"
+                    class="px-3.5 py-2 rounded-xl border border-[#E2E8F0] dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-card-btn" onclick="confirmDeleteStudentCard()"
+                    class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                    Ya, Hapus Kartu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- LOGIKA JAVASCRIPT LENGKAP & TERSTRUKTUR                               -->
+    <!-- ===================================================================== -->
+    <script>
+        // Data siswa awal realistis untuk pengujian langsung di Canvas
+        const DEFAULT_STUDENTS = [
+            { qrId: "MAT-001", nis: "2408001", name: "Aisyah Putri Maharani", className: "8A", cardTheme: "sky" },
+        ];
+
+        // State aplikasi utama
+        let MASTER_STUDENTS = DEFAULT_STUDENTS.map(s => ({ ...s }));
+        let attendanceLogs = [];
+        let currentFilter = 'ALL';
+        let selectedCardTheme = 'sky';
+        let pendingDeleteQrId = null;
+        let html5QrScanner = null;
+        let isCameraRunning = false;
+        let lastScanCode = '';
+        let lastScanTimestamp = 0;
+
+        // URL Web App Google Apps Script tersimpan di localStorage
+        let GOOGLE_SCRIPT_WEBAPP_URL = localStorage.getItem('math_qr_webapp_url') || '';
+
+        // =====================================================================
+        // INISIALISASI APLIKASI
+        // =====================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            populateMeetingOptions();
+            loadCustomStudentsFromStorage();
+            seedInitialAttendanceLogs();
+            populateDummyDropdown();
+            updateSessionMeta();
+            renderDashboard();
+            updateCardDesignerPreview();
+            renderAdminCardsGrid();
+            updateSheetBadge();
+            startRealTimeClock();
+        });
+
+        // Mengisi pilihan Pertemuan Ke- 1 sampai 16
+        function populateMeetingOptions() {
+            const select = document.getElementById('meeting-select');
+            select.innerHTML = '';
+            for (let i = 1; i <= 16; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `Pertemuan Ke-${i}`;
+                select.appendChild(opt);
+            }
+        }
+
+        // Memuat siswa kustom dan menerapkan daftar kartu yang dihapus dari localStorage
+        function loadCustomStudentsFromStorage() {
+            try {
+                const customList = JSON.parse(localStorage.getItem('math_qr_custom_students') || '[]');
+                if (Array.isArray(customList)) {
+                    customList.forEach(st => {
+                        const idx = MASTER_STUDENTS.findIndex(existing => existing.qrId === st.qrId);
+                        if (idx >= 0) {
+                            MASTER_STUDENTS[idx] = { ...MASTER_STUDENTS[idx], ...st };
+                        } else {
+                            MASTER_STUDENTS.push(st);
+                        }
+                    });
+                }
+
+                const deletedIds = JSON.parse(localStorage.getItem('math_qr_deleted_students') || '[]');
+                if (Array.isArray(deletedIds) && deletedIds.length > 0) {
+                    MASTER_STUDENTS = MASTER_STUDENTS.filter(s => !deletedIds.includes(s.qrId));
+                }
+            } catch (err) {
+                console.warn('Gagal memuat data siswa dari localStorage:', err);
+            }
+        }
+
+        // Menyimpan perubahan & penghapusan daftar siswa ke localStorage
+        function persistStudentsRegistry(removedQrId = null) {
+            const defaultIds = DEFAULT_STUDENTS.map(s => s.qrId);
+            const customList = MASTER_STUDENTS.filter(s => !defaultIds.includes(s.qrId));
+            localStorage.setItem('math_qr_custom_students', JSON.stringify(customList));
+
+            let deletedIds = [];
+            try {
+                deletedIds = JSON.parse(localStorage.getItem('math_qr_deleted_students') || '[]');
+            } catch (err) {
+                deletedIds = [];
+            }
+
+            if (removedQrId) {
+                if (!deletedIds.includes(removedQrId)) deletedIds.push(removedQrId);
+            } else {
+                deletedIds = deletedIds.filter(id => !MASTER_STUDENTS.some(s => s.qrId === id));
+            }
+            localStorage.setItem('math_qr_deleted_students', JSON.stringify(deletedIds));
+        }
+
+        // Log awal agar dashboard langsung informatif saat pertama dibuka
+        function seedInitialAttendanceLogs() {
+            const todayStr = formatIndonesianDate(new Date());
+            const sample = [
+                { qrId: "MAT-001", time: "07:05:12", status: "HADIR", note: "Tepat waktu" },
+                { qrId: "MAT-002", time: "07:06:48", status: "HADIR", note: "Tepat waktu" },
+                { qrId: "MAT-003", time: "07:18:05", status: "TERLAMBAT", note: "Masuk setelah bel" }
+            ];
+
+            attendanceLogs = sample
+                .map((item, index) => {
+                    const student = MASTER_STUDENTS.find(s => s.qrId === item.qrId);
+                    if (!student) return null;
+                    return {
+                        id: `init-${index}`,
+                        date: todayStr,
+                        time: item.time,
+                        meeting: "Pertemuan Ke-1",
+                        topic: "Persamaan Linear Satu Variabel",
+                        qrId: student.qrId,
+                        nis: student.nis,
+                        name: student.name,
+                        className: student.className,
+                        status: item.status,
+                        note: item.note
+                    };
+                })
+                .filter(Boolean);
+        }
+
+        // Mengisi dropdown simulasi siswa sesuai daftar aktif
+        function populateDummyDropdown() {
+            const select = document.getElementById('dummy-student-select');
+            const currentVal = select.value;
+
+            if (MASTER_STUDENTS.length === 0) {
+                select.innerHTML = `<option value="">Tidak ada siswa terdaftar</option>`;
+                return;
+            }
+
+            select.innerHTML = MASTER_STUDENTS.map(st =>
+                `<option value="${st.qrId}">${st.qrId} — ${st.name} (${st.className})</option>`
+            ).join('');
+
+            if (MASTER_STUDENTS.some(s => s.qrId === currentVal)) {
+                select.value = currentVal;
+            }
+        }
+
+        // Memperbarui informasi pertemuan & topik aktif
+        function updateSessionMeta() {
+            const meetingNum = document.getElementById('meeting-select').value;
+            const topic = document.getElementById('topic-select').value;
+            const primaryClass = MASTER_STUDENTS[0]?.className || '8A';
+
+            document.getElementById('active-class-badge').innerHTML = `
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                Kelas ${escapeHtml(primaryClass)} • Semester 1
+            `;
+            document.getElementById('log-session-caption').textContent =
+                `Pertemuan Ke-${meetingNum} • ${topic}`;
+        }
+
+        // Jam real-time HH:mm:ss & tanggal bahasa Indonesia
+        function startRealTimeClock() {
+            const updateClock = () => {
+                const now = new Date();
+                document.getElementById('live-date').textContent = formatIndonesianDate(now);
+                document.getElementById('live-clock').textContent = now.toLocaleTimeString('id-ID', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            };
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        function formatIndonesianDate(dateObj) {
+            return dateObj.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+
+        // =====================================================================
+        // TEMA TERANG / GELAP & NAVIGASI HALAMAN
+        // =====================================================================
+        function initTheme() {
+            const savedTheme = localStorage.getItem('math_qr_theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+            applyTheme(isDark);
+        }
+
+        function toggleDarkMode() {
+            const isDarkNow = document.documentElement.classList.contains('dark');
+            applyTheme(!isDarkNow);
+        }
+
+        function applyTheme(isDark) {
+            const html = document.documentElement;
+            const sunIcon = document.getElementById('icon-sun');
+            const moonIcon = document.getElementById('icon-moon');
+
+            if (isDark) {
+                html.classList.add('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+                localStorage.setItem('math_qr_theme', 'dark');
+            } else {
+                html.classList.remove('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+                localStorage.setItem('math_qr_theme', 'light');
+            }
+        }
+
+        function switchPage(pageName) {
+            const scannerView = document.getElementById('scanner-view');
+            const adminView = document.getElementById('admin-view');
+            const scannerBtn = document.getElementById('nav-scanner-btn');
+            const adminBtn = document.getElementById('nav-admin-btn');
+
+            if (pageName === 'admin') {
+                scannerView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+
+                adminBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white shadow-2xs transition cursor-pointer";
+                scannerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer";
+
+                updateCardDesignerPreview();
+                renderAdminCardsGrid();
+            } else {
+                adminView.classList.add('hidden');
+                scannerView.classList.remove('hidden');
+
+                scannerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white shadow-2xs transition cursor-pointer";
+                adminBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer";
+
+                renderDashboard();
+            }
+        }
+
+        // =====================================================================
+        // KAMERA QR (HTML5-QRCODE) & SIMULASI SCAN
+        // =====================================================================
+        async function startCamera() {
+            if (isCameraRunning) return;
+
+            if (typeof Html5Qrcode === 'undefined') {
+                showFeedbackBanner('error', 'Pustaka Kamera Tidak Dimuat', 'Gunakan fitur Simulasi Scan QR Siswa untuk menguji coba.');
+                return;
+            }
+
+            try {
+                if (!html5QrScanner) {
+                    html5QrScanner = new Html5Qrcode('qr-reader');
+                }
+
+                await html5QrScanner.start(
+                    { facingMode: 'environment' },
+                    { fps: 10, qrbox: { width: 200, height: 200 } },
+                    (decodedText) => {
+                        const now = Date.now();
+                        const cleanCode = String(decodedText || '').trim().toUpperCase();
+                        // Cegah pembacaan ganda dalam 2.5 detik pada kode yang sama
+                        if (cleanCode === lastScanCode && now - lastScanTimestamp < 2500) {
+                            return;
+                        }
+                        lastScanCode = cleanCode;
+                        lastScanTimestamp = now;
+                        processScannedQrCode(cleanCode);
+                    },
+                    () => {}
+                );
+
+                isCameraRunning = true;
+                document.getElementById('camera-placeholder').classList.add('hidden');
+                document.getElementById('scan-laser-line').classList.remove('hidden');
+                document.getElementById('start-camera-btn').disabled = true;
+                document.getElementById('stop-camera-btn').disabled = false;
+
+                const pill = document.getElementById('camera-status-pill');
+                pill.textContent = 'Kamera Aktif';
+                pill.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300';
+            } catch (err) {
+                console.error('Gagal menyalakan kamera:', err);
+                showFeedbackBanner(
+                    'error',
+                    'Kamera Tidak Dapat Diakses',
+                    'Periksa izin kamera browser atau gunakan Simulasi Scan QR Siswa di bawah.'
+                );
+            }
+        }
+
+        async function stopCamera() {
+            if (!isCameraRunning || !html5QrScanner) return;
+
+            try {
+                await html5QrScanner.stop();
+                await html5QrScanner.clear();
+            } catch (err) {
+                console.warn('Kendala saat menghentikan kamera:', err);
+            }
+
+            isCameraRunning = false;
+            document.getElementById('camera-placeholder').classList.remove('hidden');
+            document.getElementById('scan-laser-line').classList.add('hidden');
+            document.getElementById('start-camera-btn').disabled = false;
+            document.getElementById('stop-camera-btn').disabled = true;
+
+            const pill = document.getElementById('camera-status-pill');
+            pill.textContent = 'Kamera Mati';
+            pill.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
+        }
+
+        function simulateSelectedStudentScan() {
+            const code = document.getElementById('dummy-student-select').value;
+            if (!code) return;
+            processScannedQrCode(code);
+        }
+
+        function handleManualQrSubmit(event) {
+            event.preventDefault();
+            const input = document.getElementById('manual-qr-input');
+            const code = input.value.trim().toUpperCase();
+            if (!code) return;
+            processScannedQrCode(code);
+            input.value = '';
+        }
+
+        // Logika utama pemrosesan hasil scan QR
+        function processScannedQrCode(rawCode) {
+            const code = String(rawCode || '').trim().toUpperCase();
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('id-ID', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dateStr = formatIndonesianDate(now);
+            const meetingLabel = `Pertemuan Ke-${document.getElementById('meeting-select').value}`;
+            const topicLabel = document.getElementById('topic-select').value;
+
+            const student = MASTER_STUDENTS.find(s => s.qrId.toUpperCase() === code);
+
+            // Kasus 1: Kode QR tidak terdaftar
+            if (!student) {
+                const unknownEntry = {
+                    id: `log-${Date.now()}`,
+                    date: dateStr,
+                    time: timeStr,
+                    meeting: meetingLabel,
+                    topic: topicLabel,
+                    qrId: code || 'KOSONG',
+                    nis: '-',
+                    name: 'ID QR Tidak Dikenal',
+                    className: '-',
+                    status: 'TIDAK DIKENAL',
+                    note: 'Kode QR tidak ada di database siswa'
+                };
+
+                attendanceLogs.unshift(unknownEntry);
+                renderDashboard();
+                showFeedbackBanner(
+                    'error',
+                    'ID QR Tidak Dikenal',
+                    `Kode "${unknownEntry.qrId}" belum terdaftar. Periksa kembali kartu atau buat kartu di menu Admin Kartu QR.`,
+                    unknownEntry
+                );
+                playFeedbackSound('error');
+                sendAttendanceToGoogleSheet(unknownEntry);
+                return;
+            }
+
+            // Kasus 2: Siswa sudah tercatat hadir pada pertemuan aktif ini
+            const alreadyRecorded = attendanceLogs.some(
+                log => log.qrId === student.qrId &&
+                       log.meeting === meetingLabel &&
+                       (log.status === 'HADIR' || log.status === 'TERLAMBAT')
+            );
+
+            if (alreadyRecorded) {
+                const duplicateEntry = {
+                    id: `log-${Date.now()}`,
+                    date: dateStr,
+                    time: timeStr,
+                    meeting: meetingLabel,
+                    topic: topicLabel,
+                    qrId: student.qrId,
+                    nis: student.nis,
+                    name: student.name,
+                    className: student.className,
+                    status: 'SUDAH ABSEN',
+                    note: `Duplikat scan pada ${meetingLabel}`
+                };
+
+                attendanceLogs.unshift(duplicateEntry);
+                renderDashboard();
+                showFeedbackBanner(
+                    'duplicate',
+                    'Sudah Absen Sebelumnya',
+                    `${student.name} (NIS: ${student.nis}) sudah tercatat hadir pada ${meetingLabel}.`,
+                    duplicateEntry
+                );
+                playFeedbackSound('duplicate');
+                sendAttendanceToGoogleSheet(duplicateEntry);
+                return;
+            }
+
+            // Kasus 3: Kehadiran baru valid
+            const isLate = now.getHours() > 7 || (now.getHours() === 7 && now.getMinutes() > 15);
+            const finalStatus = isLate ? 'TERLAMBAT' : 'HADIR';
+            const noteText = isLate ? 'Tercatat terlambat' : 'Tercatat hadir tepat waktu';
+
+            const validEntry = {
+                id: `log-${Date.now()}`,
+                date: dateStr,
+                time: timeStr,
+                meeting: meetingLabel,
+                topic: topicLabel,
+                qrId: student.qrId,
+                nis: student.nis,
+                name: student.name,
+                className: student.className,
+                status: finalStatus,
+                note: noteText
+            };
+
+            attendanceLogs.unshift(validEntry);
+            renderDashboard();
+            showFeedbackBanner(
+                finalStatus === 'HADIR' ? 'success' : 'late',
+                finalStatus === 'HADIR' ? 'Absensi Berhasil • Hadir' : 'Absensi Tercatat • Terlambat',
+                `${student.name} • NIS ${student.nis} • Kelas ${student.className} • ${meetingLabel} (${timeStr})`,
+                validEntry
+            );
+            playFeedbackSound(finalStatus === 'HADIR' ? 'success' : 'late');
+            sendAttendanceToGoogleSheet(validEntry);
+        }
+
+        // Menampilkan banner umpan balik instan
+        function showFeedbackBanner(type, title, subtitle, entry = null) {
+            const banner = document.getElementById('feedback-banner');
+            const content = document.getElementById('feedback-content');
+
+            const styles = {
+                success: {
+                    ring: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/60 dark:bg-emerald-950/35',
+                    iconBg: 'bg-emerald-600 text-white',
+                    titleColor: 'text-emerald-900 dark:text-emerald-200',
+                    badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200',
+                    badgeText: 'HADIR'
+                },
+                late: {
+                    ring: 'border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-950/35',
+                    iconBg: 'bg-amber-500 text-white',
+                    titleColor: 'text-amber-900 dark:text-amber-200',
+                    badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200',
+                    badgeText: 'TERLAMBAT'
+                },
+                duplicate: {
+                    ring: 'border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-950/35',
+                    iconBg: 'bg-amber-500 text-white',
+                    titleColor: 'text-amber-900 dark:text-amber-200',
+                    badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200',
+                    badgeText: 'SUDAH ABSEN'
+                },
+                error: {
+                    ring: 'border-rose-300 dark:border-rose-700 bg-rose-50/70 dark:bg-rose-950/35',
+                    iconBg: 'bg-rose-600 text-white',
+                    titleColor: 'text-rose-900 dark:text-rose-200',
+                    badge: 'bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-200',
+                    badgeText: 'TIDAK DIKENAL'
+                }
+            };
+
+            const st = styles[type] || styles.success;
+            banner.className = `border rounded-2xl p-4 sm:p-5 shadow-xs transition-all animate-pop-in ${st.ring}`;
+
+            content.innerHTML = `
+                <div class="w-11 h-11 rounded-2xl ${st.iconBg} flex items-center justify-center shrink-0 shadow-xs">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="text-sm sm:text-base font-extrabold ${st.titleColor}">${escapeHtml(title)}</h3>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide ${st.badge}">${st.badgeText}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">${escapeHtml(subtitle)}</p>
+                    ${entry ? `
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 tabular-nums">
+                            <span>ID QR: <strong class="font-mono text-slate-700 dark:text-slate-200">${escapeHtml(entry.qrId)}</strong></span>
+                            <span>Waktu: <strong class="text-slate-700 dark:text-slate-200">${escapeHtml(entry.time)}</strong></span>
+                            <span>Pertemuan: <strong class="text-slate-700 dark:text-slate-200">${escapeHtml(entry.meeting)}</strong></span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Efek suara sintetis ringan tanpa file eksternal
+        function playFeedbackSound(kind) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (kind === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(660, ctx.currentTime);
+                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.18);
+                } else if (kind === 'late' || kind === 'duplicate') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(520, ctx.currentTime);
+                    osc.frequency.setValueAtTime(440, ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.22);
+                } else {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(240, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.07, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.24);
+                }
+            } catch (err) {
+                // Abaikan jika browser memblokir audio sebelum interaksi
+            }
+        }
+
+        // =====================================================================
+        // STATISTIK & TABEL RIWAYAT ABSENSI
+        // =====================================================================
+        function renderDashboard() {
+            const activeMeetingLabel = `Pertemuan Ke-${document.getElementById('meeting-select').value}`;
+            const totalStudents = MASTER_STUDENTS.length;
+
+            // Hitung siswa unik yang sudah hadir / terlambat pada pertemuan aktif
+            const presentQrSet = new Set(
+                attendanceLogs
+                    .filter(log =>
+                        log.meeting === activeMeetingLabel &&
+                        (log.status === 'HADIR' || log.status === 'TERLAMBAT') &&
+                        MASTER_STUDENTS.some(st => st.qrId === log.qrId)
+                    )
+                    .map(log => log.qrId)
+            );
+
+            const presentCount = presentQrSet.size;
+            const absentCount = Math.max(0, totalStudents - presentCount);
+            const percentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
+
+            document.getElementById('stat-total-students').textContent = totalStudents;
+            document.getElementById('stat-present-count').textContent = presentCount;
+            document.getElementById('stat-absent-count').textContent = absentCount;
+            document.getElementById('stat-percentage').textContent = `${percentage}%`;
+            document.getElementById('stat-percentage-bar').style.width = `${percentage}%`;
+
+            renderAttendanceTable();
+        }
+
+        function setLogFilter(filterName) {
+            currentFilter = filterName;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                const isActive = btn.getAttribute('data-filter') === filterName;
+                btn.className = isActive
+                    ? 'filter-btn px-2.5 py-1 rounded-lg font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs transition cursor-pointer'
+                    : 'filter-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer';
+            });
+            renderAttendanceTable();
+        }
+
+        function renderAttendanceTable() {
+            const tbody = document.getElementById('attendance-log-body');
+
+            const filtered = attendanceLogs.filter(entry => {
+                if (currentFilter === 'HADIR') {
+                    return entry.status === 'HADIR' || entry.status === 'TERLAMBAT';
+                }
+                if (currentFilter === 'BERMASALAH') {
+                    return entry.status === 'SUDAH ABSEN' || entry.status === 'TIDAK DIKENAL';
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+                            Belum ada data riwayat absensi untuk filter ini.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.slice(0, 25).map(entry => {
+                let badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800';
+                if (entry.status === 'TERLAMBAT' || entry.status === 'SUDAH ABSEN') {
+                    badgeClass = 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-800';
+                } else if (entry.status === 'TIDAK DIKENAL') {
+                    badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-800';
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                        <td class="py-3 pr-3 align-top tabular-nums">
+                            <div class="font-bold text-slate-800 dark:text-slate-100">${escapeHtml(entry.time)}</div>
+                            <div class="text-[11px] text-slate-400">${escapeHtml(entry.meeting)}</div>
+                        </td>
+                        <td class="py-3 px-3 align-top">
+                            <div class="font-bold text-slate-900 dark:text-white">${escapeHtml(entry.name)}</div>
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                                NIS: ${escapeHtml(entry.nis)} • Kelas ${escapeHtml(entry.className)}
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 align-top hidden sm:table-cell">
+                            <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
+                                ${escapeHtml(entry.qrId)}
+                            </span>
+                        </td>
+                        <td class="py-3 pl-3 align-top text-right">
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeClass}">
+                                ${escapeHtml(entry.status)}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Mengunduh riwayat absensi menjadi file CSV
+        function exportAttendanceCsv() {
+            if (attendanceLogs.length === 0) return;
+
+            const headers = ['Tanggal', 'Jam', 'Pertemuan', 'Topik', 'ID_QR', 'NIS', 'Nama_Siswa', 'Kelas', 'Status', 'Keterangan'];
+            const rows = attendanceLogs.map(r => [
+                r.date, r.time, r.meeting, r.topic, r.qrId, r.nis, r.name, r.className, r.status, r.note
+            ]);
+
+            const csvContent = [headers, ...rows]
+                .map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(','))
+                .join('\n');
+
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `absensi_matematika_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // =====================================================================
+        // HALAMAN ADMIN: DESAINER, EDIT, HAPUS & DATABASE KARTU QR SISWA
+        // =====================================================================
+        function generateNextQrCode() {
+            let maxNum = 12;
+            MASTER_STUDENTS.forEach(s => {
+                const match = String(s.qrId).match(/^MAT-(\d+)$/i);
+                if (match) {
+                    const num = parseInt(match[1], 10);
+                    if (num > maxNum) maxNum = num;
+                }
+            });
+            const nextCode = `MAT-${String(maxNum + 1).padStart(3, '0')}`;
+            document.getElementById('admin-qr-id').value = nextCode;
+            updateCardDesignerPreview();
+        }
+
+        function selectCardTheme(themeName) {
+            selectedCardTheme = themeName;
+            document.querySelectorAll('.card-theme-btn').forEach(btn => {
+                const active = btn.getAttribute('data-theme') === themeName;
+                btn.className = active
+                    ? 'card-theme-btn py-2 px-3 rounded-xl border-2 border-sky-600 bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-200 text-xs font-bold transition cursor-pointer'
+                    : 'card-theme-btn py-2 px-3 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer';
+            });
+            updateCardDesignerPreview();
+        }
+
+        function updateCardDesignerPreview() {
+            const qrId = (document.getElementById('admin-qr-id').value || 'MAT-013').trim().toUpperCase();
+            const nis = (document.getElementById('admin-nis').value || '2408013').trim();
+            const name = (document.getElementById('admin-name').value || 'Nama Siswa').trim();
+            const className = (document.getElementById('admin-class').value || '8A').trim();
+            const school = (document.getElementById('admin-school').value || 'SMP NEGERI 1 NUSANTARA').trim();
+
+            document.getElementById('preview-school').textContent = school;
+            document.getElementById('preview-name').textContent = name;
+            document.getElementById('preview-nis').textContent = `NIS: ${nis}`;
+            document.getElementById('preview-class').textContent = className;
+            document.getElementById('preview-qrid').textContent = qrId;
+
+            const headerEl = document.getElementById('preview-card-header');
+            headerEl.className = 'px-4 py-3 text-white flex items-center justify-between bg-gradient-to-r ' + (
+                selectedCardTheme === 'emerald'
+                    ? 'from-emerald-600 to-teal-600'
+                    : selectedCardTheme === 'indigo'
+                        ? 'from-indigo-700 to-slate-800'
+                        : 'from-sky-600 to-blue-600'
+            );
+
+            const qrBox = document.getElementById('preview-qr-box');
+            qrBox.innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(qrBox, {
+                    text: qrId,
+                    width: 84,
+                    height: 84,
+                    colorDark: '#0f172a',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            }
+        }
+
+        function downloadPreviewQrPng() {
+            const canvas = document.querySelector('#preview-qr-box canvas');
+            const img = document.querySelector('#preview-qr-box img');
+            const qrId = (document.getElementById('admin-qr-id').value || 'QR-SISWA').trim().toUpperCase();
+
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `${qrId}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } else if (img && img.src) {
+                const link = document.createElement('a');
+                link.download = `${qrId}.png`;
+                link.href = img.src;
+                link.click();
+            }
+        }
+
+        async function handleCreateStudentCard(event) {
+            event.preventDefault();
+            const qrId = document.getElementById('admin-qr-id').value.trim().toUpperCase();
+            const nis = document.getElementById('admin-nis').value.trim();
+            const name = document.getElementById('admin-name').value.trim();
+            const className = document.getElementById('admin-class').value.trim() || '8A';
+            const schoolName = document.getElementById('admin-school').value.trim() || 'SMP NEGERI 1 NUSANTARA';
+            const feedbackEl = document.getElementById('admin-form-feedback');
+
+            if (MASTER_STUDENTS.some(s => s.qrId.toUpperCase() === qrId)) {
+                feedbackEl.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200';
+                feedbackEl.textContent = `Kode QR "${qrId}" sudah terdaftar. Gunakan kode lain atau edit kartu yang sudah ada.`;
+                feedbackEl.classList.remove('hidden');
+                return;
+            }
+
+            const newStudent = {
+                qrId,
+                nis,
+                name,
+                className,
+                schoolName,
+                cardTheme: selectedCardTheme
+            };
+
+            MASTER_STUDENTS.push(newStudent);
+            persistStudentsRegistry();
+            populateDummyDropdown();
+            updateSessionMeta();
+            renderAdminCardsGrid();
+            renderDashboard();
+
+            feedbackEl.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
+            feedbackEl.textContent = `Kartu ${name} (${qrId}) berhasil disimpan ke daftar aktif.`;
+            feedbackEl.classList.remove('hidden');
+            playFeedbackSound('success');
+
+            if (GOOGLE_SCRIPT_WEBAPP_URL) {
+                try {
+                    await fetch(GOOGLE_SCRIPT_WEBAPP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'REGISTER_CARD',
+                            timestamp: new Date().toLocaleString('id-ID'),
+                            qr_id: newStudent.qrId,
+                            nis: newStudent.nis,
+                            nama: newStudent.name,
+                            kelas: newStudent.className,
+                            sekolah: newStudent.schoolName,
+                            tema_kartu: newStudent.cardTheme
+                        })
+                    });
+                } catch (err) {
+                    console.error('Gagal mengirim kartu baru ke Spreadsheet:', err);
+                }
+            }
+
+            document.getElementById('admin-nis').value = '';
+            document.getElementById('admin-name').value = '';
+            generateNextQrCode();
+        }
+
+        function renderAdminCardsGrid() {
+            const grid = document.getElementById('printable-cards-area');
+            document.getElementById('admin-total-cards').textContent = MASTER_STUDENTS.length;
+
+            if (MASTER_STUDENTS.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-10 text-center text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+                        Belum ada kartu siswa terdaftar. Gunakan formulir di atas untuk membuat kartu QR baru.
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = MASTER_STUDENTS.map((st, index) => {
+                const headerBg = st.cardTheme === 'emerald'
+                    ? 'from-emerald-600 to-teal-600'
+                    : st.cardTheme === 'indigo'
+                        ? 'from-indigo-700 to-slate-800'
+                        : 'from-sky-600 to-blue-600';
+
+                return `
+                    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white text-slate-800 overflow-hidden shadow-2xs flex flex-col justify-between">
+                        <div class="bg-gradient-to-r ${headerBg} px-3.5 py-2.5 text-white flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider">Kartu Absensi Matematika</span>
+                            <span class="text-[11px] font-extrabold bg-white/20 px-2 py-0.5 rounded">${escapeHtml(st.className)}</span>
+                        </div>
+                        <div class="p-3.5 flex items-center gap-3">
+                            <div id="grid-qr-${index}" class="w-[68px] h-[68px] p-1 border border-slate-100 rounded-lg shrink-0 flex items-center justify-center bg-white"></div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-extrabold text-slate-900 truncate">${escapeHtml(st.name)}</p>
+                                <p class="text-[11px] text-slate-500 mt-0.5 tabular-nums">NIS: ${escapeHtml(st.nis)}</p>
+                                <span class="inline-block mt-1 px-2 py-0.5 rounded bg-slate-100 text-[11px] font-mono font-bold text-slate-700">
+                                    ${escapeHtml(st.qrId)}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="px-3.5 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 print:hidden">
+                            <button type="button" onclick="openEditCardModal('${escapeHtml(st.qrId)}')"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 text-[11px] font-semibold text-slate-700 transition cursor-pointer">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit
+                            </button>
+                            <button type="button" onclick="openDeleteCardModal('${escapeHtml(st.qrId)}')"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50/70 hover:bg-rose-600 hover:text-white text-[11px] font-semibold text-rose-700 transition cursor-pointer">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Hapus
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (typeof QRCode !== 'undefined') {
+                MASTER_STUDENTS.forEach((st, index) => {
+                    const container = document.getElementById(`grid-qr-${index}`);
+                    if (container) {
+                        new QRCode(container, {
+                            text: st.qrId,
+                            width: 60,
+                            height: 60,
+                            colorDark: '#0f172a',
+                            colorLight: '#ffffff',
+                            correctLevel: QRCode.CorrectLevel.L
+                        });
+                    }
+                });
+            }
+        }
+
+        // Modal Edit Kartu Siswa
+        function openEditCardModal(qrId) {
+            const student = MASTER_STUDENTS.find(s => s.qrId === qrId);
+            if (!student) return;
+
+            document.getElementById('edit-original-qrid').value = student.qrId;
+            document.getElementById('edit-qr-id').value = student.qrId;
+            document.getElementById('edit-nis').value = student.nis;
+            document.getElementById('edit-name').value = student.name;
+            document.getElementById('edit-class').value = student.className;
+            document.getElementById('edit-theme').value = student.cardTheme || 'sky';
+            document.getElementById('edit-card-error').classList.add('hidden');
+
+            const modal = document.getElementById('edit-card-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeEditCardModal() {
+            const modal = document.getElementById('edit-card-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function saveEditedStudentCard(event) {
+            event.preventDefault();
+            const originalQrId = document.getElementById('edit-original-qrid').value;
+            const newQrId = document.getElementById('edit-qr-id').value.trim().toUpperCase();
+            const newNis = document.getElementById('edit-nis').value.trim();
+            const newName = document.getElementById('edit-name').value.trim();
+            const newClass = document.getElementById('edit-class').value.trim() || '8A';
+            const newTheme = document.getElementById('edit-theme').value || 'sky';
+            const errorEl = document.getElementById('edit-card-error');
+
+            const conflict = MASTER_STUDENTS.some(s => s.qrId === newQrId && s.qrId !== originalQrId);
+            if (conflict) {
+                errorEl.textContent = `Kode QR "${newQrId}" sudah dipakai siswa lain.`;
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            const targetIndex = MASTER_STUDENTS.findIndex(s => s.qrId === originalQrId);
+            if (targetIndex < 0) return;
+
+            const updatedStudent = {
+                ...MASTER_STUDENTS[targetIndex],
+                qrId: newQrId,
+                nis: newNis,
+                name: newName,
+                className: newClass,
+                cardTheme: newTheme
+            };
+
+            MASTER_STUDENTS[targetIndex] = updatedStudent;
+            persistStudentsRegistry();
+            populateDummyDropdown();
+            updateSessionMeta();
+            renderAdminCardsGrid();
+            renderDashboard();
+            closeEditCardModal();
+            playFeedbackSound('success');
+
+            if (GOOGLE_SCRIPT_WEBAPP_URL) {
+                try {
+                    await fetch(GOOGLE_SCRIPT_WEBAPP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'UPDATE_CARD',
+                            old_qr_id: originalQrId,
+                            qr_id: updatedStudent.qrId,
+                            nis: updatedStudent.nis,
+                            nama: updatedStudent.name,
+                            kelas: updatedStudent.className,
+                            sekolah: updatedStudent.schoolName || document.getElementById('admin-school').value || 'SMP NEGERI 1 NUSANTARA',
+                            tema_kartu: updatedStudent.cardTheme
+                        })
+                    });
+                } catch (err) {
+                    console.error('Gagal menyinkronkan edit kartu ke Spreadsheet:', err);
+                }
+            }
+        }
+
+        // Modal Konfirmasi Hapus Kartu Siswa
+        function openDeleteCardModal(qrId) {
+            const student = MASTER_STUDENTS.find(s => s.qrId === qrId);
+            if (!student) return;
+
+            pendingDeleteQrId = qrId;
+            document.getElementById('delete-card-desc').innerHTML =
+                `Apakah Anda yakin ingin menghapus kartu <strong>${escapeHtml(student.name)}</strong> (<code class="font-mono">${escapeHtml(student.qrId)}</code>)?`;
+
+            const modal = document.getElementById('delete-card-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDeleteCardModal() {
+            pendingDeleteQrId = null;
+            const modal = document.getElementById('delete-card-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function confirmDeleteStudentCard() {
+            if (!pendingDeleteQrId) return;
+            const targetQrId = pendingDeleteQrId;
+            const idx = MASTER_STUDENTS.findIndex(s => s.qrId === targetQrId);
+
+            if (idx >= 0) {
+                MASTER_STUDENTS.splice(idx, 1);
+            }
+
+            persistStudentsRegistry(targetQrId);
+            populateDummyDropdown();
+            updateSessionMeta();
+            renderAdminCardsGrid();
+            renderDashboard();
+            closeDeleteCardModal();
+            playFeedbackSound('late');
+
+            if (GOOGLE_SCRIPT_WEBAPP_URL) {
+                try {
+                    await fetch(GOOGLE_SCRIPT_WEBAPP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'DELETE_CARD',
+                            qr_id: targetQrId
+                        })
+                    });
+                } catch (err) {
+                    console.error('Gagal menghapus kartu di Spreadsheet:', err);
+                }
+            }
+        }
+
+        // =====================================================================
+        // PENGIRIMAN & SINKRONISASI GOOGLE SPREADSHEET
+        // =====================================================================
+        function openWebhookModal() {
+            document.getElementById('webhook-url-input').value = GOOGLE_SCRIPT_WEBAPP_URL;
+            document.getElementById('webhook-validation-msg').classList.add('hidden');
+            const modal = document.getElementById('webhook-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeWebhookModal() {
+            const modal = document.getElementById('webhook-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveWebhookConfig() {
+            const rawUrl = document.getElementById('webhook-url-input').value.trim();
+            const msgEl = document.getElementById('webhook-validation-msg');
+
+            if (rawUrl && rawUrl.includes('docs.google.com/spreadsheets')) {
+                msgEl.textContent = 'Link docs.google.com/spreadsheets adalah link tampilan, bukan Web App (/exec). Gunakan URL dari Deploy > Web app.';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+
+            GOOGLE_SCRIPT_WEBAPP_URL = rawUrl;
+            localStorage.setItem('math_qr_webapp_url', GOOGLE_SCRIPT_WEBAPP_URL);
+            updateSheetBadge();
+            closeWebhookModal();
+        }
+
+        function updateSheetBadge() {
+            const badge = document.getElementById('sheet-status-badge');
+            if (GOOGLE_SCRIPT_WEBAPP_URL) {
+                badge.textContent = 'Terhubung Google Sheet';
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/70';
+            } else {
+                badge.textContent = 'Mode Lokal / Siap Hubung Sheet';
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60';
+            }
+        }
+
+        async function sendAttendanceToGoogleSheet(entry) {
+            if (!GOOGLE_SCRIPT_WEBAPP_URL) return;
+
+            try {
+                await fetch(GOOGLE_SCRIPT_WEBAPP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'ATTENDANCE_LOG',
+                        tanggal: entry.date,
+                        jam: entry.time,
+                        pertemuan: entry.meeting,
+                        topik: entry.topic,
+                        kelas: entry.className,
+                        qr_id: entry.qrId,
+                        nis: entry.nis,
+                        nama: entry.name,
+                        status: entry.status,
+                        keterangan: entry.note
+                    })
+                });
+            } catch (err) {
+                console.error('Gagal mengirim log absensi ke Google Sheet:', err);
+            }
+        }
+
+        async function syncStudentsFromSheet() {
+            if (!GOOGLE_SCRIPT_WEBAPP_URL) {
+                openWebhookModal();
+                return;
+            }
+
+            try {
+                const sep = GOOGLE_SCRIPT_WEBAPP_URL.includes('?') ? '&' : '?';
+                const res = await fetch(`${GOOGLE_SCRIPT_WEBAPP_URL}${sep}action=students`);
+                const data = await res.json();
+                if (data && data.status === 'success' && Array.isArray(data.students)) {
+                    data.students.forEach(remote => {
+                        if (!remote.qrId) return;
+                        const idx = MASTER_STUDENTS.findIndex(s => s.qrId === remote.qrId);
+                        const merged = {
+                            qrId: remote.qrId,
+                            nis: remote.nis || '-',
+                            name: remote.name || 'Siswa',
+                            className: remote.className || '8A',
+                            schoolName: remote.schoolName || 'SMP NEGERI 1 NUSANTARA',
+                            cardTheme: remote.cardTheme || 'sky'
+                        };
+                        if (idx >= 0) {
+                            MASTER_STUDENTS[idx] = merged;
+                        } else {
+                            MASTER_STUDENTS.push(merged);
+                        }
+                    });
+                    localStorage.removeItem('math_qr_deleted_students');
+                    persistStudentsRegistry();
+                    populateDummyDropdown();
+                    updateSessionMeta();
+                    renderAdminCardsGrid();
+                    renderDashboard();
+                    playFeedbackSound('success');
+                }
+            } catch (err) {
+                console.error('Gagal sinkronisasi data siswa dari Sheet:', err);
+            }
+        }
+
+        // Helper keamanan HTML untuk mencegah XSS
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+    </script>
+</body>
+</html>
