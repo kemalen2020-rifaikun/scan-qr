@@ -754,14 +754,28 @@
 Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</textarea>
                             </div>
 
-                            <!-- Tombol Download Kartu (.JPG) -->
-                            <button type="button" onclick="downloadCardAsJpg()"
-                                class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                                <span>Download Kartu Absensi (.JPG)</span>
-                            </button>
+                            <!-- Notifikasi status simpan kartu -->
+                            <div id="card-save-toast" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                                Desain & data kartu siswa berhasil disimpan!
+                            </div>
+
+                            <!-- Tombol Simpan Kartu & Download Kartu (.JPG) -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <button type="button" onclick="saveCardDesignToStudent()"
+                                    class="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-xs transition flex items-center justify-center gap-2 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                    </svg>
+                                    <span>Simpan Kartu</span>
+                                </button>
+                                <button type="button" onclick="downloadCardAsJpg()"
+                                    class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    <span>Download (.JPG)</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- SISI KANAN: PREVIEW KARTU ABSENSI REAL-TIME -->
@@ -1878,6 +1892,46 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                 }
             };
             reader.readAsDataURL(file);
+        }
+
+        // Menyimpan perubahan foto siswa, visi & misi kartu ke data siswa & profil admin
+        function saveCardDesignToStudent() {
+            const selectedId = document.getElementById("card-student-select").value;
+            const st = studentsData.find(s => s.qrId === selectedId);
+            const visiMisiText = document.getElementById("card-visi-misi").value;
+
+            if (st) {
+                st.photoUrl = cardPhotoDataUrl || DEFAULT_STUDENT_PHOTO;
+                postToGoogleSheet({
+                    action: "UPDATE_CARD",
+                    old_qr_id: st.qrId,
+                    qr_id: st.qrId,
+                    nis: st.nis,
+                    nama: st.name,
+                    kelas: st.className,
+                    status_siswa: st.status
+                });
+            }
+
+            // Sinkronkan visi/misi ke profil admin bila diubah dari menu desain kartu
+            const visiMatch = visiMisiText.match(/Visi:\s*([\s\S]*?)(?:\nMisi:|$)/i);
+            const misiMatch = visiMisiText.match(/Misi:\s*([\s\S]*)/i);
+            if (visiMatch && visiMatch[1].trim()) {
+                adminProfile.visi = visiMatch[1].trim();
+            }
+            if (misiMatch && misiMatch[1].trim()) {
+                adminProfile.misi = misiMatch[1].trim();
+            }
+
+            saveLocalState();
+            applyAdminProfileToUI();
+            renderStudentsTable();
+
+            const toast = document.getElementById("card-save-toast");
+            if (toast) {
+                toast.classList.remove("hidden");
+                setTimeout(() => toast.classList.add("hidden"), 2500);
+            }
         }
 
         function updateCardPreview() {
