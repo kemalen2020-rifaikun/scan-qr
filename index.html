@@ -35,7 +35,7 @@
         .tabular-nums {
             font-variant-numeric: tabular-nums;
         }
-        /* Sudut bidik viewfinder kamera HP */
+        /* Sudut bidik viewfinder kamera HP persegi */
         .scan-corner {
             position: absolute;
             width: 24px;
@@ -362,7 +362,7 @@
                     </span>
                     <div class="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200/80 text-right">
                         <div id="topbar-clock" class="text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums">00:00:00</div>
-                        <div id="topbar-date" class="text-[10px] text-slate-500 hidden sm:block">Rabu, 25 Nov 2026</div>
+                        <div id="topbar-date" class="text-[10px] text-slate-500 hidden sm:block">Kamis, 26 Nov 2026</div>
                     </div>
                 </div>
             </header>
@@ -681,7 +681,7 @@
                         <div class="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs space-y-4">
                             <div>
                                 <h2 class="text-base sm:text-lg font-bold text-slate-900">Pengaturan Desain Kartu Absensi</h2>
-                                <p class="text-xs text-slate-500">Sesuaikan tampilan kartu siswa lalu unduh dalam format <strong>.JPG</strong></p>
+                                <p class="text-xs text-slate-500">Sesuaikan tampilan kartu siswa, simpan ke Spreadsheet, lalu unduh <strong>.JPG</strong></p>
                             </div>
 
                             <!-- Pilih Siswa dari Database -->
@@ -756,7 +756,7 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</textarea>
 
                             <!-- Notifikasi status simpan kartu -->
                             <div id="card-save-toast" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
-                                Desain & data kartu siswa berhasil disimpan!
+                                Desain, foto siswa & logo sekolah berhasil disimpan ke Spreadsheet!
                             </div>
 
                             <!-- Tombol Simpan Kartu & Download Kartu (.JPG) -->
@@ -1043,10 +1043,14 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
                             </div>
                             <div>
-                                <label for="admin-logo-url" class="block text-xs font-semibold text-slate-700 mb-1">Link Logo MTs / Sekolah (URL)</label>
-                                <input type="url" id="admin-logo-url"
-                                    value="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Kementerian_Agama_new_logo.png/240px-Kementerian_Agama_new_logo.png"
-                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                                <label for="admin-logo-url" class="block text-xs font-semibold text-slate-700 mb-1">Link Logo MTs / Sekolah (URL atau Unggah File)</label>
+                                <div class="space-y-2">
+                                    <input type="text" id="admin-logo-url"
+                                        value="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Kementerian_Agama_new_logo.png/240px-Kementerian_Agama_new_logo.png"
+                                        class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                                    <input type="file" id="admin-logo-file" accept="image/*" onchange="handleAdminLogoFileUpload(event)"
+                                        class="w-full text-xs text-slate-600 file:mr-2.5 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
+                                </div>
                             </div>
                             <div>
                                 <label for="admin-school-photo-url" class="block text-xs font-semibold text-slate-700 mb-1">Link Photo Sekolah (Halaman Login)</label>
@@ -1078,12 +1082,12 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                             <input type="url" id="admin-webapp-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec"
                                 class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-200 bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600">
                             <p class="text-[11px] text-emerald-800">
-                                Tempel URL hasil <strong>Deploy &gt; Web app</strong> dari kode <code class="font-mono">kode.gs</code> agar semua data siswa, absensi, hari libur, dan profil tersimpan otomatis di Google Spreadsheet.
+                                Tempel URL hasil <strong>Deploy &gt; Web app</strong> dari kode <code class="font-mono">kode.gs</code> agar semua data siswa, foto kartu, logo sekolah, absensi, hari libur, dan profil tersimpan otomatis di Google Spreadsheet.
                             </p>
                         </div>
 
                         <div id="admin-save-toast" class="hidden p-3 rounded-xl bg-emerald-600 text-white text-xs font-bold">
-                            Pengaturan admin berhasil disimpan & diterapkan!
+                            Pengaturan admin & logo sekolah berhasil disimpan ke Spreadsheet!
                         </div>
 
                         <div class="flex justify-end">
@@ -1181,9 +1185,9 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                     </div>
                 </div>
 
-                <!-- Upload Photo Siswa yang Menempel di Kartu -->
+                <!-- Upload Photo Siswa yang Menempel di Kartu & Tersimpan ke Spreadsheet -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Foto Siswa (Menempel di Kartu Absensi)</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Foto Siswa (Tersimpan di Spreadsheet & Menempel di Kartu)</label>
                     <div class="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 bg-slate-50">
                         <img id="modal-student-photo-preview"
                             src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=300&q=80"
@@ -1192,7 +1196,7 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                         <div class="min-w-0 flex-1">
                             <input type="file" id="modal-student-photo-file" accept="image/*" onchange="handleModalStudentPhotoChange(event)"
                                 class="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
-                            <p class="text-[10px] text-slate-400 mt-1">Pilih foto dari HP/galeri agar otomatis menempel pada kartu siswa.</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Foto otomatis dikompresi ringan agar tersimpan di Google Spreadsheet.</p>
                         </div>
                     </div>
                 </div>
@@ -1304,10 +1308,14 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
         }
 
         function saveLocalState() {
-            localStorage.setItem("mts_admin_profile", JSON.stringify(adminProfile));
-            localStorage.setItem("mts_students_data", JSON.stringify(studentsData));
-            localStorage.setItem("mts_attendance_records", JSON.stringify(attendanceRecords));
-            localStorage.setItem("mts_holidays_data", JSON.stringify(holidaysData));
+            try {
+                localStorage.setItem("mts_admin_profile", JSON.stringify(adminProfile));
+                localStorage.setItem("mts_students_data", JSON.stringify(studentsData));
+                localStorage.setItem("mts_attendance_records", JSON.stringify(attendanceRecords));
+                localStorage.setItem("mts_holidays_data", JSON.stringify(holidaysData));
+            } catch (err) {
+                console.warn("Penyimpanan lokal penuh:", err);
+            }
         }
 
         function initSessionSelectors() {
@@ -1378,7 +1386,6 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
         }
 
         function navigateTo(pageKey) {
-            // Hentikan kamera jika pindah keluar dari menu absensi
             if (pageKey !== "absensi" && isScannerActive) {
                 stopQrScanner();
             }
@@ -1407,7 +1414,6 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
 
             toggleMobileSidebar(false);
 
-            // Render data halaman aktif
             if (pageKey === "beranda") renderBerandaPage();
             if (pageKey === "absensi") renderAbsensiPage();
             if (pageKey === "siswa") renderStudentsTable();
@@ -1501,7 +1507,6 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
 
             try {
                 if (!qrScannerInstance) {
-                    // Batasi format pemindaian khusus QR_CODE (persegi) agar deteksi lebih cepat dan akurat
                     const formats = typeof Html5QrcodeSupportedFormats !== "undefined"
                         ? [Html5QrcodeSupportedFormats.QR_CODE]
                         : undefined;
@@ -1588,7 +1593,6 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
             const now = new Date();
             const todayIso = getTodayIsoDate();
 
-            // Cegah scan / pencatatan ganda di hari yang sama
             const alreadyRecordedToday = attendanceRecords.find(r =>
                 r.isoDate === todayIso && r.qrId.toUpperCase() === student.qrId.toUpperCase()
             );
@@ -1696,7 +1700,14 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                 <tr class="hover:bg-slate-50/80 transition">
                     <td class="py-3 px-3 font-mono font-bold text-slate-800">${escapeHtml(st.qrId)}</td>
                     <td class="py-3 px-3 tabular-nums text-slate-600">${escapeHtml(st.nis)}</td>
-                    <td class="py-3 px-3 font-bold text-slate-900">${escapeHtml(st.name)}</td>
+                    <td class="py-3 px-3 font-bold text-slate-900">
+                        <div class="flex items-center gap-2.5">
+                            <img src="${escapeHtml(st.photoUrl || DEFAULT_STUDENT_PHOTO)}" alt="${escapeHtml(st.name)}"
+                                onerror="this.src='${DEFAULT_STUDENT_PHOTO}'"
+                                class="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0">
+                            <span>${escapeHtml(st.name)}</span>
+                        </div>
+                    </td>
                     <td class="py-3 px-3 font-semibold text-slate-700">${escapeHtml(st.className)}</td>
                     <td class="py-3 px-3">
                         <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${st.status === "Aktif" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600 border border-slate-200"}">
@@ -1756,15 +1767,15 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
             modal.classList.add("flex");
         }
 
-        function handleModalStudentPhotoChange(event) {
+        async function handleModalStudentPhotoChange(event) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                modalStudentPhotoDataUrl = e.target.result;
-                document.getElementById("modal-student-photo-preview").src = modalStudentPhotoDataUrl;
-            };
-            reader.readAsDataURL(file);
+            try {
+                modalStudentPhotoDataUrl = await compressImageFile(file, 180, 225, 0.72);
+            } catch (err) {
+                modalStudentPhotoDataUrl = await readFileAsDataUrl(file);
+            }
+            document.getElementById("modal-student-photo-preview").src = modalStudentPhotoDataUrl;
         }
 
         function closeStudentModal() {
@@ -1795,7 +1806,8 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                     nis,
                     nama: name,
                     kelas: className,
-                    status_siswa: status
+                    status_siswa: status,
+                    foto_siswa: photoUrl
                 });
             } else {
                 studentsData.push(payload);
@@ -1806,14 +1818,14 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                     nis,
                     nama: name,
                     kelas: className,
-                    status_siswa: status
+                    status_siswa: status,
+                    foto_siswa: photoUrl
                 });
             }
 
             saveLocalState();
             renderStudentsTable();
 
-            // Jika kartu siswa yang sedang terbuka di Desainer Kartu adalah siswa yang diedit, perbarui preview & fotonya
             const activeCardSelect = document.getElementById("card-student-select");
             if (activeCardSelect && activeCardSelect.value === (origId || qrId)) {
                 cardPhotoDataUrl = photoUrl;
@@ -1860,7 +1872,10 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
             const st = studentsData.find(s => s.qrId === selectedId) || studentsData[0];
             if (!st) return;
 
+            cardLogoDataUrl = adminProfile.logoUrl || DEFAULT_SCHOOL_LOGO;
             cardPhotoDataUrl = st.photoUrl || DEFAULT_STUDENT_PHOTO;
+
+            document.getElementById("preview-card-logo").src = cardLogoDataUrl;
             document.getElementById("preview-card-photo").src = cardPhotoDataUrl;
             document.getElementById("preview-card-school").textContent = adminProfile.schoolName;
             document.getElementById("preview-card-name").textContent = st.name;
@@ -1870,31 +1885,38 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
             updateCardPreview();
         }
 
-        function handleCardImageUpload(event, target) {
+        async function handleCardImageUpload(event, target) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                if (target === "logo") {
-                    cardLogoDataUrl = e.target.result;
-                    document.getElementById("preview-card-logo").src = cardLogoDataUrl;
-                } else {
-                    cardPhotoDataUrl = e.target.result;
-                    document.getElementById("preview-card-photo").src = cardPhotoDataUrl;
 
-                    // Simpan foto langsung menempel ke data siswa terpilih agar tetap terbawa saat ganti siswa/unduh .JPG
-                    const selectedId = document.getElementById("card-student-select").value;
-                    const st = studentsData.find(s => s.qrId === selectedId);
-                    if (st) {
-                        st.photoUrl = cardPhotoDataUrl;
-                        saveLocalState();
-                    }
+            if (target === "logo") {
+                try {
+                    cardLogoDataUrl = await compressImageFile(file, 140, 140, 0.8, true);
+                } catch (err) {
+                    cardLogoDataUrl = await readFileAsDataUrl(file);
                 }
-            };
-            reader.readAsDataURL(file);
+                document.getElementById("preview-card-logo").src = cardLogoDataUrl;
+                adminProfile.logoUrl = cardLogoDataUrl;
+                saveLocalState();
+                applyAdminProfileToUI();
+            } else {
+                try {
+                    cardPhotoDataUrl = await compressImageFile(file, 180, 225, 0.72);
+                } catch (err) {
+                    cardPhotoDataUrl = await readFileAsDataUrl(file);
+                }
+                document.getElementById("preview-card-photo").src = cardPhotoDataUrl;
+
+                const selectedId = document.getElementById("card-student-select").value;
+                const st = studentsData.find(s => s.qrId === selectedId);
+                if (st) {
+                    st.photoUrl = cardPhotoDataUrl;
+                    saveLocalState();
+                }
+            }
         }
 
-        // Menyimpan perubahan foto siswa, visi & misi kartu ke data siswa & profil admin
+        // Menyimpan perubahan foto siswa, logo sekolah, visi & misi kartu ke Spreadsheet
         function saveCardDesignToStudent() {
             const selectedId = document.getElementById("card-student-select").value;
             const st = studentsData.find(s => s.qrId === selectedId);
@@ -1909,11 +1931,15 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                     nis: st.nis,
                     nama: st.name,
                     kelas: st.className,
-                    status_siswa: st.status
+                    status_siswa: st.status,
+                    foto_siswa: st.photoUrl
                 });
             }
 
-            // Sinkronkan visi/misi ke profil admin bila diubah dari menu desain kartu
+            if (cardLogoDataUrl) {
+                adminProfile.logoUrl = cardLogoDataUrl;
+            }
+
             const visiMatch = visiMisiText.match(/Visi:\s*([\s\S]*?)(?:\nMisi:|$)/i);
             const misiMatch = visiMisiText.match(/Misi:\s*([\s\S]*)/i);
             if (visiMatch && visiMatch[1].trim()) {
@@ -1922,6 +1948,11 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
             if (misiMatch && misiMatch[1].trim()) {
                 adminProfile.misi = misiMatch[1].trim();
             }
+
+            postToGoogleSheet({
+                action: "SAVE_ADMIN_SETTINGS",
+                ...adminProfile
+            });
 
             saveLocalState();
             applyAdminProfileToUI();
@@ -1966,7 +1997,7 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
             }
         }
 
-        // Merender desain kartu siswa ke HTML5 Canvas dan mengunduh file .JPG
+        // Merender desain kartu siswa (foto siswa + logo sekolah dari Spreadsheet) ke HTML5 Canvas dan mengunduh file .JPG
         function downloadCardAsJpg() {
             const canvas = document.createElement("canvas");
             canvas.width = 760;
@@ -1978,6 +2009,9 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
             const fontSize = parseInt(document.getElementById("card-font-size").value, 10);
             const qrSize = parseInt(document.getElementById("card-qr-size").value, 10) * 1.8;
 
+            const selectedId = document.getElementById("card-student-select").value;
+            const st = studentsData.find(s => s.qrId === selectedId);
+
             const schoolName = document.getElementById("preview-card-school").textContent;
             const studentName = document.getElementById("preview-card-name").textContent;
             const nis = document.getElementById("preview-card-nis").textContent;
@@ -1985,8 +2019,88 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
             const qrId = document.getElementById("preview-card-id").textContent;
             const visiMisi = document.getElementById("card-visi-misi").value;
 
-            const finalizeAndDownload = () => {
-                // Salin QR Code dari elemen preview jika tersedia
+            const photoSrc = (st && st.photoUrl) ? st.photoUrl : (cardPhotoDataUrl || DEFAULT_STUDENT_PHOTO);
+            const logoSrc = adminProfile.logoUrl || cardLogoDataUrl || DEFAULT_SCHOOL_LOGO;
+
+            const loadCanvasImage = (src) => new Promise((resolve) => {
+                if (!src) return resolve(null);
+                const img = new Image();
+                if (!src.startsWith("data:")) {
+                    img.crossOrigin = "anonymous";
+                }
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = src;
+            });
+
+            Promise.all([loadCanvasImage(photoSrc), loadCanvasImage(logoSrc)]).then(([photoImg, logoImg]) => {
+                // Latar belakang kartu
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Header warna utama
+                ctx.fillStyle = primaryColor;
+                ctx.fillRect(0, 0, canvas.width, 96);
+
+                // Gambar Logo Sekolah di header kartu
+                let textStartX = 32;
+                if (logoImg) {
+                    ctx.fillStyle = "#ffffff";
+                    ctx.beginPath();
+                    ctx.roundRect(28, 18, 60, 60, 12);
+                    ctx.fill();
+                    ctx.drawImage(logoImg, 34, 24, 48, 48);
+                    textStartX = 102;
+                }
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "800 24px Inter, sans-serif";
+                ctx.fillText(schoolName.toUpperCase(), textStartX, 44);
+                ctx.font = "500 16px Inter, sans-serif";
+                ctx.fillText("Kartu Absensi Pembelajaran Tatap Muka • Matematika", textStartX, 72);
+
+                // Foto Siswa yang menempel langsung pada kartu
+                if (photoImg) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.roundRect(32, 124, 140, 175, 14);
+                    ctx.clip();
+
+                    const targetW = 140;
+                    const targetH = 175;
+                    const imgRatio = photoImg.width / photoImg.height;
+                    const targetRatio = targetW / targetH;
+                    let sx = 0, sy = 0, sw = photoImg.width, sh = photoImg.height;
+                    if (imgRatio > targetRatio) {
+                        sw = photoImg.height * targetRatio;
+                        sx = (photoImg.width - sw) / 2;
+                    } else {
+                        sh = photoImg.width / targetRatio;
+                        sy = (photoImg.height - sh) / 2;
+                    }
+                    ctx.drawImage(photoImg, sx, sy, sw, sh, 32, 124, targetW, targetH);
+                    ctx.restore();
+                } else {
+                    ctx.fillStyle = "#e2e8f0";
+                    ctx.fillRect(32, 124, 140, 175);
+                    ctx.fillStyle = "#475569";
+                    ctx.font = "600 14px Inter, sans-serif";
+                    ctx.fillText("FOTO SISWA", 60, 216);
+                }
+
+                // Identitas Siswa
+                const scaledFont = Math.round(fontSize * 1.65);
+                ctx.fillStyle = "#0f172a";
+                ctx.font = `800 ${scaledFont + 4}px Inter, sans-serif`;
+                ctx.fillText(studentName, 196, 158);
+
+                ctx.fillStyle = "#334155";
+                ctx.font = `600 ${scaledFont}px Inter, sans-serif`;
+                ctx.fillText(`NIS   : ${nis}`, 196, 198);
+                ctx.fillText(`Kelas : ${className}`, 196, 232);
+                ctx.fillText(`ID    : ${qrId}`, 196, 266);
+
+                // Salin QR Code dari elemen preview
                 const qrCanvas = document.querySelector("#preview-card-qr canvas");
                 if (qrCanvas) {
                     const drawQrSize = Math.min(185, Math.max(120, qrSize));
@@ -2013,83 +2127,7 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                 link.download = `Kartu_Absensi_${qrId}.jpg`;
                 link.href = canvas.toDataURL("image/jpeg", 0.95);
                 link.click();
-            };
-
-            // Latar belakang kartu
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Header warna utama
-            ctx.fillStyle = primaryColor;
-            ctx.fillRect(0, 0, canvas.width, 96);
-
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "800 24px Inter, sans-serif";
-            ctx.fillText(schoolName.toUpperCase(), 32, 44);
-            ctx.font = "500 16px Inter, sans-serif";
-            ctx.fillText("Kartu Absensi Pembelajaran Tatap Muka • Matematika", 32, 72);
-
-            // Identitas Siswa
-            const scaledFont = Math.round(fontSize * 1.65);
-            ctx.fillStyle = "#0f172a";
-            ctx.font = `800 ${scaledFont + 4}px Inter, sans-serif`;
-            ctx.fillText(studentName, 196, 158);
-
-            ctx.fillStyle = "#334155";
-            ctx.font = `600 ${scaledFont}px Inter, sans-serif`;
-            ctx.fillText(`NIS   : ${nis}`, 196, 198);
-            ctx.fillText(`Kelas : ${className}`, 196, 232);
-            ctx.fillText(`ID    : ${qrId}`, 196, 266);
-
-            // Gambar foto siswa yang benar-benar menempel ke kartu .JPG
-            const photoImgEl = document.getElementById("preview-card-photo");
-            const photoSrc = (photoImgEl && photoImgEl.src) ? photoImgEl.src : cardPhotoDataUrl;
-
-            const drawPhotoFramePlaceholder = () => {
-                ctx.fillStyle = "#e2e8f0";
-                ctx.fillRect(32, 124, 140, 175);
-                ctx.fillStyle = "#475569";
-                ctx.font = "600 14px Inter, sans-serif";
-                ctx.fillText("FOTO SISWA", 60, 216);
-            };
-
-            if (photoSrc) {
-                const imgObj = new Image();
-                if (!photoSrc.startsWith("data:")) {
-                    imgObj.crossOrigin = "anonymous";
-                }
-                imgObj.onload = () => {
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.roundRect(32, 124, 140, 175, 14);
-                    ctx.clip();
-
-                    // Crop proporsional (cover) agar foto tidak gepeng
-                    const targetW = 140;
-                    const targetH = 175;
-                    const imgRatio = imgObj.width / imgObj.height;
-                    const targetRatio = targetW / targetH;
-                    let sx = 0, sy = 0, sw = imgObj.width, sh = imgObj.height;
-                    if (imgRatio > targetRatio) {
-                        sw = imgObj.height * targetRatio;
-                        sx = (imgObj.width - sw) / 2;
-                    } else {
-                        sh = imgObj.width / targetRatio;
-                        sy = (imgObj.height - sh) / 2;
-                    }
-                    ctx.drawImage(imgObj, sx, sy, sw, sh, 32, 124, targetW, targetH);
-                    ctx.restore();
-                    finalizeAndDownload();
-                };
-                imgObj.onerror = () => {
-                    drawPhotoFramePlaceholder();
-                    finalizeAndDownload();
-                };
-                imgObj.src = photoSrc;
-            } else {
-                drawPhotoFramePlaceholder();
-                finalizeAndDownload();
-            }
+            });
         }
 
         // =====================================================================
@@ -2209,6 +2247,20 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
         // =====================================================================
         // 11. HALAMAN PENGATURAN ADMIN & SINKRONISASI SPREADSHEET
         // =====================================================================
+        async function handleAdminLogoFileUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            try {
+                const compressedLogo = await compressImageFile(file, 140, 140, 0.8, true);
+                document.getElementById("admin-logo-url").value = compressedLogo;
+                adminProfile.logoUrl = compressedLogo;
+                applyAdminProfileToUI();
+            } catch (err) {
+                const rawLogo = await readFileAsDataUrl(file);
+                document.getElementById("admin-logo-url").value = rawLogo;
+            }
+        }
+
         function applyAdminProfileToUI() {
             // Login screen
             document.getElementById("login-school-photo").src = adminProfile.schoolPhotoUrl;
@@ -2313,9 +2365,11 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
                 const data = await res.json();
                 if (data && data.status === "success") {
                     if (Array.isArray(data.students) && data.students.length > 0) {
-                        studentsData = data.students;
+                        studentsData = data.students.map(st => ({
+                            ...st,
+                            photoUrl: st.photoUrl || DEFAULT_STUDENT_PHOTO
+                        }));
                     }
-                    // Sinkronkan riwayat absensi persis dengan isi tab Log_Absensi di Spreadsheet (termasuk jika kosong)
                     if (Array.isArray(data.attendance)) {
                         attendanceRecords = data.attendance;
                     }
@@ -2338,8 +2392,51 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
         }
 
         // =====================================================================
-        // 12. HELPER UTILITAS (JAM, TANGGAL, WARNA STATUS & KEAMANAN XSS)
+        // 12. HELPER UTILITAS (KOMPRESI GAMBAR, JAM, TANGGAL & KEAMANAN XSS)
         // =====================================================================
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function compressImageFile(file, maxW = 180, maxH = 225, quality = 0.72, keepPng = false) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width;
+                        let h = img.height;
+                        const ratio = Math.min(maxW / w, maxH / h, 1);
+                        w = Math.round(w * ratio);
+                        h = Math.round(h * ratio);
+
+                        const canvas = document.createElement("canvas");
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext("2d");
+                        if (!keepPng) {
+                            ctx.fillStyle = "#ffffff";
+                            ctx.fillRect(0, 0, w, h);
+                        }
+                        ctx.drawImage(img, 0, 0, w, h);
+                        const dataUrl = keepPng
+                            ? canvas.toDataURL("image/png")
+                            : canvas.toDataURL("image/jpeg", quality);
+                        resolve(dataUrl);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
         function startLiveClock() {
             const tick = () => {
                 const now = new Date();
