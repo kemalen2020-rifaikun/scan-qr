@@ -2162,7 +2162,7 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
 
             tbody.innerHTML = filtered.map(r => `
                 <tr>
-                    <td class="py-2.5 px-3 tabular-nums text-slate-700">${escapeHtml(r.dateDisplay || r.isoDate)}</td>
+                    <td class="py-2.5 px-3 tabular-nums text-slate-700">${escapeHtml(formatRekapDateWib(r.dateDisplay || r.isoDate))}</td>
                     <td class="py-2.5 px-3 font-mono font-bold text-slate-800">${escapeHtml(r.qrId)}</td>
                     <td class="py-2.5 px-3 tabular-nums text-slate-600">${escapeHtml(r.nis)}</td>
                     <td class="py-2.5 px-3 font-bold text-slate-900">${escapeHtml(r.name)}</td>
@@ -2459,8 +2459,26 @@ Misi: Disiplin waktu, gemar belajar matematika, dan jujur.</p>
 
         function formatDateIndo(dateObj) {
             return dateObj.toLocaleDateString("id-ID", {
-                weekday: "short", day: "numeric", month: "short", year: "numeric"
-            });
+                weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta"
+            }) + " GMT+7 WIB";
+        }
+
+        function formatRekapDateWib(rawValue) {
+            if (!rawValue) return "";
+            const str = String(rawValue).trim();
+            if (str.includes("GMT+7 WIB")) return str;
+
+            const parsed = new Date(str);
+            if (!isNaN(parsed.getTime())) {
+                return formatDateIndo(parsed);
+            }
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                const [y, m, d] = str.split("-").map(Number);
+                return formatDateIndo(new Date(Date.UTC(y, m - 1, d, 0, 0, 0)));
+            }
+
+            return str;
         }
 
         function getStatusBadgeClass(status) {
